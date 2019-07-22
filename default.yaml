@@ -1,0 +1,34 @@
+server:
+  mode: "debug"
+  addr: ":8080"
+  environment: "development"
+  shutdownTimeout: 5
+  name: "zaun"
+  version: "0.0.1"
+
+database:
+  dbType: "mysql" # possible value : postgresql, mssql, mysql, sqlite
+  connectionUri: "root:pikirendewe@tcp(127.0.0.1:3306)/zaun?tls=skip-verify&autocommit=true&parseTime=true"
+  enableLogging: true
+  useUtcTIme: true
+
+redis:
+  addr: "localhost:6379"
+  password: ""
+  database: 0
+  ttl: 60
+
+logger:
+  out:
+    name: "stdout"      # possible value: stdout, stderr, null
+  level: "debug"        # possible value: debug, info, warning, error, fatal, panic
+  formatter:
+    name: "text"        # possible value: text, json, null
+  hooks:
+    - name: "file"      # possible value: file, filewithformatter
+      options:
+        filename: "logs/app.log"
+        rotate: true
+        daily: true
+        maxdays: 7
+        level: 5
