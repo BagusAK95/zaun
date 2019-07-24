@@ -16,7 +16,7 @@ redis:
   addr: "localhost:6379"
   password: ""
   database: 0
-  ttl: 60
+  ttl: 0
 
 logger:
   out:

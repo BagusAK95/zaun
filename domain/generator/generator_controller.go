@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo"
@@ -16,7 +17,7 @@ func NewController(service GeneratorService) GeneratorController {
 	return GeneratorController{service}
 }
 
-//Process : process request
+//Process : process
 func (controller *GeneratorController) Process(c echo.Context) error {
 	path := c.Request().URL.Path
 	method := c.Request().Method
@@ -24,12 +25,21 @@ func (controller *GeneratorController) Process(c echo.Context) error {
 	body := new(interface{})
 	c.Bind(body)
 
-	data := map[string]interface{}{
+	route, params, err := controller.service.MatchingRoute(path)
+	if err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+
+	request := map[string]interface{}{
 		"path":   path,
+		"params": params,
 		"method": method,
 		"query":  query,
 		"body":   body,
 	}
 
-	return c.JSON(http.StatusOK, data)
+	result := controller.service.SendToTarget(route, request)
+
+	return c.JSON(http.StatusOK, result)
 }

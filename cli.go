@@ -6,7 +6,8 @@ import (
 
 	"github.com/BagusAK95/zaun/common"
 	"github.com/BagusAK95/zaun/config"
-	route "github.com/BagusAK95/zaun/domain/route"
+	"github.com/BagusAK95/zaun/domain/route"
+	"github.com/BagusAK95/zaun/domain/target"
 )
 
 //CommandlineExecute : execute command line
@@ -33,5 +34,6 @@ func mysqlMigrate() {
 	}
 	db.AutoMigrate(
 		&route.Route{},
+		&target.Target{},
 	)
 }

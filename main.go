@@ -15,7 +15,7 @@ import (
 	"github.com/BagusAK95/zaun/common"
 	"github.com/BagusAK95/zaun/config"
 	"github.com/BagusAK95/zaun/delivery/http"
-	generator "github.com/BagusAK95/zaun/domain/generator"
+	"github.com/BagusAK95/zaun/domain/generator"
 
 	_ "database/sql"
 
@@ -59,8 +59,13 @@ func initializeContainer() (Container, error) {
 	if err != nil {
 		return Container{}, err
 	}
+	redis, err := common.NewRedisConnection(config)
+	if err != nil {
+		return Container{}, err
+	}
+	cache := common.NewCache(redis, config)
 
-	generator := generator.Init(db, config)
+	generator := generator.Init(db, config, cache)
 	httpHandler := http.New(*generator)
 
 	return Container{

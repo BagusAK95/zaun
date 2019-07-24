@@ -1,6 +1,8 @@
 package common
 
 import (
+	"encoding/json"
+
 	"github.com/BagusAK95/zaun/config"
 	"github.com/go-redis/redis"
 )
@@ -11,9 +13,6 @@ type Cache struct {
 	Configuration *config.Configuration
 }
 
-//Fetch : fetch key
-type Fetch func(key string) interface{}
-
 //NewCache : initialized new cache
 func NewCache(cl *redis.Client, co *config.Configuration) Cache {
 	return Cache{
@@ -23,16 +22,21 @@ func NewCache(cl *redis.Client, co *config.Configuration) Cache {
 }
 
 //Get : get cache data
-func (c *Cache) Get(key string, fn Fetch) interface{} {
+func (c *Cache) Get(key string) (string, error) {
 	val, err := c.Client.Get(key).Result()
 	if err != nil {
-		return fn(key)
+		return "", err
 	}
 
-	return val
+	return val, nil
 }
 
 //Set : set cache data
-func (c *Cache) Set(key string, value interface{}) {
-	c.Client.Set(key, value, c.Configuration.Redis.TTL)
+func (c *Cache) Set(key string, value interface{}) error {
+	obj, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+
+	return c.Client.Set(key, string(obj), c.Configuration.Redis.TTL).Err()
 }

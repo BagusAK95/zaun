@@ -20,10 +20,19 @@ type Route struct {
 	Body        string     `gorm:"type:mediumtext(0)"`
 	Response    string     `gorm:"type:text(0)"`
 	Middleware  string     `gorm:"type:mediumtext(0)"`
-	Service     string     `gorm:"type:mediumtext(0)"`
+	Target      string     `gorm:"type:mediumtext(0)"`
 	Status      string     `sql:"type:ENUM('active','deactive')"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+}
+
+//RouteTarget :
+type RouteTarget struct {
+	Name     string
+	Endpoint string
+	Headers  map[string]string
+	Query    map[string]string
+	Body     map[string]interface{}
 }
 
 // BeforeCreate : set id before create
