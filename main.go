@@ -51,17 +51,17 @@ type Container struct {
 
 //initializeContainer : initialized container
 func initializeContainer() (Container, error) {
-	config, err := config.New()
-	if err != nil {
-		return Container{}, err
+	config, errNewConfig := config.New()
+	if errNewConfig != nil {
+		return Container{}, errNewConfig
 	}
-	db, err := common.NewMysqlConnection(config)
-	if err != nil {
-		return Container{}, err
+	db, errNewConnMysql := common.NewMysqlConnection(config)
+	if errNewConnMysql != nil {
+		return Container{}, errNewConnMysql
 	}
-	redis, err := common.NewRedisConnection(config)
-	if err != nil {
-		return Container{}, err
+	redis, errNewConnRedis := common.NewRedisConnection(config)
+	if errNewConnRedis != nil {
+		return Container{}, errNewConnRedis
 	}
 	cache := common.NewCache(redis, config)
 

@@ -22,8 +22,8 @@ func NewService(repo TargetRepo, cache common.Cache) TargetService {
 func (c *TargetService) GetByName(name string) (target Target, err error) {
 	var targets []Target
 
-	cache, err := c.cache.Get("zaunTargets")
-	if err == nil {
+	cache, errGet := c.cache.Get("zaunTargets")
+	if errGet == nil {
 		var dat []Target
 
 		err := json.Unmarshal([]byte(cache), &dat)
