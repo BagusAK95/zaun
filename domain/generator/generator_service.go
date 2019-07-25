@@ -54,7 +54,7 @@ func (c *GeneratorService) SendToTarget(routeData route.Route, httpRequest HttpR
 	stringBody := httpRequest.replaceVariable(string(requestBody))
 	stringQuery := httpRequest.replaceVariable(string(requestQuery))
 	stringHeader := httpRequest.replaceVariable(string(requestHeader))
-	stringPath := httpRequest.replaceVariable(string(httpRequest.Path))
+	stringPath := httpRequest.replaceVariable(httpRequest.Path)
 
 	setQuery := make(map[string]string)
 	json.Unmarshal([]byte(stringQuery), &setQuery)
@@ -137,12 +137,12 @@ func (h *HttpRequest) replaceVariable(object string) string {
 		regexReplace := regexp.MustCompile(`\$\{` + keyVal[0] + `\.` + keyVal[1] + `\}`)
 
 		switch keyVal[0] {
-		case "header":
-			object = regexReplace.ReplaceAllString(object, h.Header[keyVal[1]]) //Replace variable with real value
+		case "headers":
+			object = regexReplace.ReplaceAllString(object, h.Headers[keyVal[1]]) //Replace variable with real value
 		case "params":
-			object = regexReplace.ReplaceAllString(object, h.Header[keyVal[1]]) //Replace variable with real value
+			object = regexReplace.ReplaceAllString(object, h.Params[keyVal[1]]) //Replace variable with real value
 		case "query":
-			object = regexReplace.ReplaceAllString(object, h.Header[keyVal[1]]) //Replace variable with real value
+			object = regexReplace.ReplaceAllString(object, h.Query[keyVal[1]]) //Replace variable with real value
 		case "body":
 			object = regexReplace.ReplaceAllString(object, h.Body.(map[string]interface{})[keyVal[1]].(string)) //Replace variable with real value
 		}

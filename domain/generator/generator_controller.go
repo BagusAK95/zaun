@@ -24,9 +24,9 @@ func (controller *GeneratorController) Process(c echo.Context) error {
 	body := new(interface{})
 	c.Bind(body)
 
-	header := make(map[string]string)
+	headers := make(map[string]string)
 	for key, val := range c.Request().Header {
-		header[key] = val[0]
+		headers[key] = val[0]
 	}
 
 	query := make(map[string]string)
@@ -42,12 +42,12 @@ func (controller *GeneratorController) Process(c echo.Context) error {
 	}
 
 	httpRequest := HttpRequest{
-		Path:   path,
-		Header: header,
-		Params: mappedParams,
-		Method: method,
-		Query:  query,
-		Body:   *body,
+		Path:    path,
+		Headers: headers,
+		Params:  mappedParams,
+		Method:  method,
+		Query:   query,
+		Body:    *body,
 	}
 
 	httpResponse, errSendToTarget := controller.service.SendToTarget(matchedRoute, httpRequest)
