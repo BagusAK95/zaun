@@ -20,6 +20,7 @@ func NewController(service GeneratorService) GeneratorController {
 func (controller *GeneratorController) Process(c echo.Context) error {
 	path := c.Request().URL.Path
 	method := c.Request().Method
+
 	body := new(interface{})
 	c.Bind(body)
 
@@ -33,24 +34,28 @@ func (controller *GeneratorController) Process(c echo.Context) error {
 		query[key] = val[0]
 	}
 
-	route, params, errMatching := controller.service.MatchingRoute(path)
+	matchedRoute, mappedParams, errMatching := controller.service.MatchingRoute(method, path)
 	if errMatching != nil {
-		return errMatching
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": errMatching.Error(),
+		})
 	}
 
-	request := map[string]interface{}{
-		"path":   path,
-		"header": header,
-		"params": params,
-		"method": method,
-		"query":  query,
-		"body":   *body,
+	httpRequest := HttpRequest{
+		Path:   path,
+		Header: header,
+		Params: mappedParams,
+		Method: method,
+		Query:  query,
+		Body:   *body,
 	}
 
-	result, errSendData := controller.service.SendToTarget(route, request)
-	if errSendData != nil {
-		return errSendData
+	httpResponse, errSendToTarget := controller.service.SendToTarget(matchedRoute, httpRequest)
+	if errSendToTarget != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": errSendToTarget.Error(),
+		})
 	}
 
-	return c.JSON(http.StatusOK, result)
+	return c.JSON(http.StatusOK, httpResponse)
 }

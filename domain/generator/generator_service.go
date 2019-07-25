@@ -23,21 +23,23 @@ func NewService(route route.RouteService, target target.TargetService) Generator
 }
 
 //MatchingRoute : mathcing route
-func (c *GeneratorService) MatchingRoute(path string) (matchedRoute route.Route, mappedParams map[string]string, err error) {
+func (c *GeneratorService) MatchingRoute(method string, path string) (matchedRoute route.Route, mappedParams map[string]string, err error) {
 	routes := c.route.FindAll()
 
 	for _, route := range routes {
-		pathMatch, paramsMap := mappingParams(route.Endpoint, path)
-		if len(pathMatch) != 0 {
-			return route, paramsMap, nil
+		if method == route.Method {
+			matchedPath, mappedParams := mappingParams(route.Endpoint, path)
+			if len(matchedPath) != 0 {
+				return route, mappedParams, nil
+			}
 		}
 	}
 
-	return matchedRoute, nil, errors.New("Route not found")
+	return matchedRoute, nil, errors.New("Cannot " + method + " " + path)
 }
 
 //SendToTarget : send to service target
-func (c *GeneratorService) SendToTarget(routeData route.Route, requestData map[string]interface{}) (result interface{}, err error) {
+func (c *GeneratorService) SendToTarget(routeData route.Route, httpRequest HttpRequest) (result interface{}, err error) {
 	var routeTarget route.RouteTarget
 
 	errUnmarshal := json.Unmarshal([]byte(routeData.Target), &routeTarget)
@@ -49,10 +51,10 @@ func (c *GeneratorService) SendToTarget(routeData route.Route, requestData map[s
 	requestQuery, _ := json.Marshal(routeTarget.Query)
 	requestHeader, _ := json.Marshal(routeTarget.Headers)
 
-	stringBody := replaceVariable(string(requestBody), requestData)
-	stringQuery := replaceVariable(string(requestQuery), requestData)
-	stringHeader := replaceVariable(string(requestHeader), requestData)
-	stringPath := replaceVariable(requestData["path"].(string), requestData)
+	stringBody := httpRequest.replaceVariable(string(requestBody))
+	stringQuery := httpRequest.replaceVariable(string(requestQuery))
+	stringHeader := httpRequest.replaceVariable(string(requestHeader))
+	stringPath := httpRequest.replaceVariable(string(httpRequest.Path))
 
 	setQuery := make(map[string]string)
 	json.Unmarshal([]byte(stringQuery), &setQuery)
@@ -74,7 +76,8 @@ func (c *GeneratorService) SendToTarget(routeData route.Route, requestData map[s
 	}
 
 	client := resty.New()
-	switch requestData["method"] {
+
+	switch httpRequest.Method {
 	case "GET":
 		client.R().
 			SetHeaders(setHeaders).
@@ -104,40 +107,44 @@ func (c *GeneratorService) SendToTarget(routeData route.Route, requestData map[s
 	return result, nil
 }
 
-func mappingParams(registeredPath, matchingPath string) (pathMatch []string, paramsMap map[string]string) {
-	var regexParams = regexp.MustCompile(`\{([a-zA-Z]*)\}`) //Find {parameter} on route
+func mappingParams(registeredPath, path string) (matchedPath []string, mappedParams map[string]string) {
+	var regexParams = regexp.MustCompile(`\{([a-zA-Z]*)\}`) //Find {parameter} on path
 	var regexSlices = regexp.MustCompile(`\/`)              //Find character / on path
 
-	var replaceParams = regexParams.ReplaceAllString(registeredPath, `(?P<$1>[a-zA-Z0-9-:]*)`) //Replace to another regex
+	var replaceParams = regexParams.ReplaceAllString(registeredPath, `(?P<$1>[a-zA-Z0-9-:]*)`) //Replace to another regex for group params
 	var replaceSlices = regexSlices.ReplaceAllString(replaceParams, `\/`)                      //Replace character / to be \/ on route
-	var strRegex = `^` + replaceSlices + `$`                                                   //Set start and end
 
-	var compRegEx = regexp.MustCompile(strRegex)
-	match := compRegEx.FindStringSubmatch(matchingPath)
-	pathMatch = match
+	var regexMapping = regexp.MustCompile(`^` + replaceSlices + `$`)
+	matching := regexMapping.FindStringSubmatch(path)
+	matchedPath = matching
 
-	paramsMap = make(map[string]string)
-	for i, name := range compRegEx.SubexpNames() {
-		if i > 0 && i <= len(match) {
-			paramsMap[name] = match[i]
+	mappedParams = make(map[string]string)
+	for i, param := range regexMapping.SubexpNames() {
+		if i > 0 && i <= len(matching) {
+			mappedParams[param] = matching[i]
 		}
 	}
 	return
 }
 
-func replaceVariable(object string, requestData map[string]interface{}) string {
-	findRegEx := regexp.MustCompile(`\$\{([a-zA-Z.]*)\}`) //Find variable {key.value} on route
-	match := findRegEx.FindAllStringSubmatch(object, -1)
-	for _, obj := range match {
+func (h *HttpRequest) replaceVariable(object string) string {
+	regexFind := regexp.MustCompile(`\$\{([a-zA-Z.]*)\}`) //Find variable {key.value} on route
+	matching := regexFind.FindAllStringSubmatch(object, -1)
+
+	for _, obj := range matching {
 		keyVal := strings.Split(obj[1], ".")
 
-		replaceRegEx := regexp.MustCompile(`\$\{` + keyVal[0] + `\.` + keyVal[1] + `\}`)
+		regexReplace := regexp.MustCompile(`\$\{` + keyVal[0] + `\.` + keyVal[1] + `\}`)
 
 		switch keyVal[0] {
+		case "header":
+			object = regexReplace.ReplaceAllString(object, h.Header[keyVal[1]]) //Replace variable with real value
+		case "params":
+			object = regexReplace.ReplaceAllString(object, h.Header[keyVal[1]]) //Replace variable with real value
+		case "query":
+			object = regexReplace.ReplaceAllString(object, h.Header[keyVal[1]]) //Replace variable with real value
 		case "body":
-			object = replaceRegEx.ReplaceAllString(object, requestData[keyVal[0]].(map[string]interface{})[keyVal[1]].(string)) //Replace variable with real value
-		default:
-			object = replaceRegEx.ReplaceAllString(object, requestData[keyVal[0]].(map[string]string)[keyVal[1]]) //Replace variable with real value
+			object = regexReplace.ReplaceAllString(object, h.Body.(map[string]interface{})[keyVal[1]].(string)) //Replace variable with real value
 		}
 	}
 
